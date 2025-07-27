@@ -2,54 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Interactive Cube Scene</title>
+  <title>Interactive Scene</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
- <label for="slider-rx">Rx:</label>
-	<input type="range" id="slider-rx" name="slider-rx" min="0" max="100" value="0">
-	<label for="slider-ry">Ry:</label>
-	<input type="range" id="slider-ry" name="slider-ry" min="0" max="100" value="0">
-	<label for="slider-rz">Rz:</label>
-	<input type="range" id="slider-rz" name="slider-rz" min="0" max="100" value="0">
+  <label for="slider-rx">Rx:</label>
+  <input type="range" id="slider-rx" name="slider-rx" min="0" max="100" value="0">
+  <label for="slider-ry">Ry:</label>
+  <input type="range" id="slider-ry" name="slider-ry" min="0" max="100" value="0">
+  <label for="slider-rz">Rz:</label>
+  <input type="range" id="slider-rz" name="slider-rz" min="0" max="100" value="0">
 
-	<br>
+  <br>
 
-	<label for="slider-camd">Camera distance:</label>
-	<input type="range" id="slider-camd" name="slider-camd" min="0" max="100" value="0">
+  <label for="slider-camd">Camera distance:</label>
+  <input type="range" id="slider-camd" name="slider-camd" min="0" max="100" value="0">
 
-	<br><br>
+  <br><br>
 
-	<canvas></canvas>
+  <label><input type="checkbox" id="checkbox-autorotate"> Time-based Rotation</label>
 
+  <br><br>
+
+  <canvas></canvas>
 
   <script src="utils.js"></script>
   <script src="matrix-lib.js"></script>
   <script src="mesh-data.js"></script>
   <script src="main.js"></script>
 </body>
-</html>
-
-<!DOCTYPE html>
-<html>
-
-<head>
-	<meta charset="utf-8">
-	<title>Exercise 6: 3D Transformations</title>
-	<link rel="stylesheet" type="text/css" href="/style.css">
-</head>
-
-<body>
-
-	<p id="error" style="background-color: #bd2337; color: white;	padding: 1em;"></p>
-
-	
-</body>
-
-
-<script src="/helpers/utils.js"></script>
-<script src="mesh-data.js"></script>
-<script src="matrix-lib.js"></script>
-<script src="main.js"></script>
-
 </html>

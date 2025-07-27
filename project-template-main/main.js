@@ -1,6 +1,7 @@
 async function main() {
 	await initialize();
 	setupSliders();
+	setupCheckbox();
 	requestAnimationFrame(render);
 }
 
@@ -26,6 +27,9 @@ let rotation = { x: 0, y: 0, z: 0 };
 let sliderCameraDistance = 10;
 
 let carMesh = null;
+let enableAutoRotate = false;
+let lastTime = 0;
+let rotationY = 0;
 
 function setupSliders() {
 	document.getElementById("slider-rx").addEventListener("input", (e) => {
@@ -39,6 +43,13 @@ function setupSliders() {
 	});
 	document.getElementById("slider-camd").addEventListener("input", (e) => {
 		sliderCameraDistance = 5 + e.target.value / 100 * 15;
+	});
+}
+
+function setupCheckbox() {
+	const checkbox = document.getElementById("checkbox-autorotate");
+	checkbox.addEventListener("change", (e) => {
+		enableAutoRotate = e.target.checked;
 	});
 }
 
@@ -83,13 +94,9 @@ async function initialize() {
 	textureSphere = await loadImageTexture(gl, "compgrafik.png");
 	textureTorus = await loadImageTexture(gl, "compgrafik2.png");
 
-	// === SPHERE ===
 	vaoSphere = createVAO(sphereMesh, gl);
-
-	// === TORUS ===
 	vaoTorus = createVAO(torusMesh, gl);
 
-	// === CAR ===
 	const objText = await loadTextResource("car.obj");
 	const mtlText = await loadTextResource("car.mtl");
 	carMesh = parseOBJ(objText);
@@ -125,7 +132,14 @@ function createVAO(mesh, gl) {
 	return vao;
 }
 
-function render() {
+function render(currentTime) {
+	const deltaTime = (currentTime - lastTime) * 0.001;
+	lastTime = currentTime;
+
+	if (enableAutoRotate) {
+		rotationY += deltaTime * 0.5;
+	}
+
 	gl.clearColor(0.1, 0.1, 0.1, 1);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	gl.useProgram(program);
@@ -140,13 +154,9 @@ function render() {
 	gl.uniformMatrix4fv(uniformViewMatrixLocation, true, view);
 	gl.uniformMatrix4fv(uniformProjectionMatrixLocation, true, projection);
 
-	// === SPHERE ===
 	drawObject(vaoSphere, sphereMesh, textureSphere, mat4Translation(-3, 0, 0));
+	drawObject(vaoTorus, torusMesh, textureTorus, mat4RotY(rotationY));
 
-	// === TORUS ===
-	drawObject(vaoTorus, torusMesh, textureTorus, mat4Translation(0, 0, 0));
-
-	// === CAR ===
 	if (carMesh && vaoCar) {
 		const modelCar = mat4Mul(mat4Translation(3, 0, 0),
 			mat4Mul(mat4RotX(rotation.x * Math.PI / 180),
@@ -276,5 +286,4 @@ function parseMTL(text) {
 	return materials;
 }
 
-// === START ===
 main();
