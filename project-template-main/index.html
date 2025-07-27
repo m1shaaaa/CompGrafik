@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Interactive Cube Scene</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Cube Scene mit Slidern</h1>
+
+  <label><input type="checkbox" id="rotateTorus" checked /> Torus rotieren</label><br>
+  <label>Cube-Größe: <input type="range" id="cubeScale" min="0.5" max="2.0" step="0.1" value="1.0" /></label><br><br>
+
+  <!-- Neue Position-Slider -->
+  <label>Cube X Position: <input type="range" id="cubeX" min="-5" max="5" step="0.1" value="0"></label><br>
+  <label>Cube Y Position: <input type="range" id="cubeY" min="-5" max="5" step="0.1" value="0"></label><br>
+  <label>Cube Z Position: <input type="range" id="cubeZ" min="-20" max="0" step="0.1" value="-1.5"></label><br><br>
+
+  <canvas></canvas>
+
+  <script src="utils.js"></script>
+  <script src="matrix-lib.js"></script>
+  <script src="mesh-data.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
