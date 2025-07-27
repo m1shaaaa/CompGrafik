@@ -1,5 +1,6 @@
 async function main() {
 	await initialize();
+	setupSliders();
 	requestAnimationFrame(render);
 }
 
@@ -15,9 +16,27 @@ let uniformProjectionMatrixLocation;
 let uniformColorLocation;
 let uniformTextureLocation;
 
-let cameraDistance = 10;
 let cameraRotation = { x: 15, y: 30 };
 let isMouseDown = false;
+
+// Neue Zustände
+let rotation = { x: 0, y: 0, z: 0 };
+let sliderCameraDistance = 10;
+
+function setupSliders() {
+	document.getElementById("slider-rx").addEventListener("input", (e) => {
+		rotation.x = e.target.value / 100 * 360;
+	});
+	document.getElementById("slider-ry").addEventListener("input", (e) => {
+		rotation.y = e.target.value / 100 * 360;
+	});
+	document.getElementById("slider-rz").addEventListener("input", (e) => {
+		rotation.z = e.target.value / 100 * 360;
+	});
+	document.getElementById("slider-camd").addEventListener("input", (e) => {
+		sliderCameraDistance = 5 + e.target.value / 100 * 15; // Bereich 5–20
+	});
+}
 
 function setupCameraRotation() {
 	const canvas = document.querySelector("canvas");
@@ -111,7 +130,6 @@ async function initialize() {
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 		gl.generateMipmap(gl.TEXTURE_2D);
 
-		// Starte erst nach Texturladen
 		requestAnimationFrame(render);
 	};
 }
@@ -125,17 +143,22 @@ function render(time) {
 	const aspect = canvas.width / canvas.height;
 	const projection = perspective(45, aspect, 0.1, 100);
 	const view = mat4Mul(
-		mat4Translation(0, 0, -cameraDistance),
+		mat4Translation(0, 0, -sliderCameraDistance),
 		mat4Mul(mat4RotX(cameraRotation.x * Math.PI / 180), mat4RotY(cameraRotation.y * Math.PI / 180))
 	);
 
 	gl.uniformMatrix4fv(uniformViewMatrixLocation, true, view);
 	gl.uniformMatrix4fv(uniformProjectionMatrixLocation, true, projection);
 
-	// === Sphere zeichnen ===
-	const modelSphere = mat4Translation(-1.5, 0, 0);
+	// === SPHERE ===
+	const modelSphere = mat4Mul(
+		mat4Translation(-1.5, 0, 0),
+		mat4Mul(
+			mat4RotX(rotation.x * Math.PI / 180),
+			mat4Mul(mat4RotY(rotation.y * Math.PI / 180), mat4RotZ(rotation.z * Math.PI / 180))
+		)
+	);
 	gl.uniformMatrix4fv(uniformModelMatrixLocation, true, modelSphere);
-
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 	gl.uniform1i(uniformTextureLocation, 0);
@@ -143,8 +166,14 @@ function render(time) {
 	gl.bindVertexArray(vaoSphere);
 	gl.drawElements(gl.TRIANGLES, sphereMesh.indices.length, gl.UNSIGNED_SHORT, 0);
 
-	// === TORUS zeichnen ===
-	const modelTorus = mat4Translation(1.5, 0, 0);
+	// === TORUS ===
+	const modelTorus = mat4Mul(
+		mat4Translation(1.5, 0, 0),
+		mat4Mul(
+			mat4RotX(rotation.x * Math.PI / 180),
+			mat4Mul(mat4RotY(rotation.y * Math.PI / 180), mat4RotZ(rotation.z * Math.PI / 180))
+		)
+	);
 	gl.uniformMatrix4fv(uniformModelMatrixLocation, true, modelTorus);
 	gl.uniform3fv(uniformColorLocation, [0.2, 0.6, 1.0]);
 
