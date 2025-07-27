@@ -8,6 +8,7 @@ let gl;
 let program;
 let vaoSphere;
 let vaoTorus;
+let vaoCar;
 let texture;
 
 let uniformModelMatrixLocation;
@@ -19,9 +20,65 @@ let uniformTextureLocation;
 let cameraRotation = { x: 15, y: 30 };
 let isMouseDown = false;
 
-// Neue Zustände
+// Slider-Zustände
 let rotation = { x: 0, y: 0, z: 0 };
 let sliderCameraDistance = 10;
+
+// car.obj Mesh
+let carMesh = null;
+function parseOBJ(text) {
+	const positions = [];
+	const uvs = [];
+	const normals = [];
+	const indices = [];
+
+	const lines = text.split("\n");
+	const vertexData = [];
+	const indexMap = new Map();
+
+	for (const line of lines) {
+		const parts = line.trim().split(/\s+/);
+		if (parts.length === 0 || parts[0].startsWith("#")) continue;
+
+		switch (parts[0]) {
+			case "v":
+				positions.push(...parts.slice(1).map(Number));
+				break;
+			case "vt":
+				uvs.push(...parts.slice(1).map(Number));
+				break;
+			case "vn":
+				normals.push(...parts.slice(1).map(Number));
+				break;
+			case "f":
+				for (let i = 1; i <= 3; i++) {
+					const key = parts[i];
+					if (!indexMap.has(key)) {
+						const [v, vt, vn] = key.split("/").map(idx => parseInt(idx) - 1);
+						vertexData.push({
+							position: positions.slice(v * 3, v * 3 + 3),
+							uv: vt !== undefined && vt >= 0 ? uvs.slice(vt * 2, vt * 2 + 2) : [0, 0],
+							normal: vn !== undefined && vn >= 0 ? normals.slice(vn * 3, vn * 3 + 3) : [0, 0, 0],
+						});
+						indexMap.set(key, vertexData.length - 1);
+					}
+					indices.push(indexMap.get(key));
+				}
+				break;
+		}
+	}
+
+	const flatPositions = vertexData.flatMap(v => v.position);
+	const flatUVs = vertexData.flatMap(v => v.uv);
+	const flatNormals = vertexData.flatMap(v => v.normal);
+
+	return {
+		positions: flatPositions,
+		uvs: flatUVs,
+		normals: flatNormals,
+		indices: indices,
+	};
+}
 
 function setupSliders() {
 	document.getElementById("slider-rx").addEventListener("input", (e) => {
@@ -34,7 +91,7 @@ function setupSliders() {
 		rotation.z = e.target.value / 100 * 360;
 	});
 	document.getElementById("slider-camd").addEventListener("input", (e) => {
-		sliderCameraDistance = 5 + e.target.value / 100 * 15; // Bereich 5–20
+		sliderCameraDistance = 5 + e.target.value / 100 * 15;
 	});
 }
 
@@ -78,21 +135,18 @@ async function initialize() {
 
 	setupCameraRotation();
 
-	// === VAO für Sphere ===
+	// === SPHERE ===
 	vaoSphere = gl.createVertexArray();
 	gl.bindVertexArray(vaoSphere);
-
 	const sphereIndexBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphereIndexBuffer);
 	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(sphereMesh.indices), gl.STATIC_DRAW);
-
 	const spherePosBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, spherePosBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sphereMesh.positions), gl.STATIC_DRAW);
 	const posLoc = gl.getAttribLocation(program, "a_position");
 	gl.enableVertexAttribArray(posLoc);
 	gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
-
 	if (sphereMesh.uvs) {
 		const sphereUVBuffer = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, sphereUVBuffer);
@@ -101,23 +155,47 @@ async function initialize() {
 		gl.enableVertexAttribArray(uvLoc);
 		gl.vertexAttribPointer(uvLoc, 2, gl.FLOAT, false, 0, 0);
 	}
-
 	gl.bindVertexArray(null);
 
-	// === VAO für Torus ===
+	// === TORUS ===
 	vaoTorus = gl.createVertexArray();
 	gl.bindVertexArray(vaoTorus);
-
 	const torusIndexBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, torusIndexBuffer);
 	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(torusMesh.indices), gl.STATIC_DRAW);
-
 	const torusPosBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, torusPosBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(torusMesh.positions), gl.STATIC_DRAW);
 	const torusPosLoc = gl.getAttribLocation(program, "a_position");
 	gl.enableVertexAttribArray(torusPosLoc);
 	gl.vertexAttribPointer(torusPosLoc, 3, gl.FLOAT, false, 0, 0);
+	gl.bindVertexArray(null);
+
+	// === car.obj laden ===
+	const carText = await loadTextResource("car.obj");
+	carMesh = parseOBJ(carText);
+	vaoCar = gl.createVertexArray();
+	gl.bindVertexArray(vaoCar);
+
+	const carPosBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, carPosBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(carMesh.positions), gl.STATIC_DRAW);
+	const carPosLoc = gl.getAttribLocation(program, "a_position");
+	gl.enableVertexAttribArray(carPosLoc);
+	gl.vertexAttribPointer(carPosLoc, 3, gl.FLOAT, false, 0, 0);
+
+	if (carMesh.uvs.length > 0) {
+		const carUVBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, carUVBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(carMesh.uvs), gl.STATIC_DRAW);
+		const uvLoc = gl.getAttribLocation(program, "a_uv");
+		gl.enableVertexAttribArray(uvLoc);
+		gl.vertexAttribPointer(uvLoc, 2, gl.FLOAT, false, 0, 0);
+	}
+
+	const carIndexBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, carIndexBuffer);
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(carMesh.indices), gl.STATIC_DRAW);
 
 	gl.bindVertexArray(null);
 
@@ -129,7 +207,6 @@ async function initialize() {
 		gl.bindTexture(gl.TEXTURE_2D, texture);
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 		gl.generateMipmap(gl.TEXTURE_2D);
-
 		requestAnimationFrame(render);
 	};
 }
@@ -152,33 +229,40 @@ function render(time) {
 
 	// === SPHERE ===
 	const modelSphere = mat4Mul(
-		mat4Translation(-1.5, 0, 0),
-		mat4Mul(
-			mat4RotX(rotation.x * Math.PI / 180),
-			mat4Mul(mat4RotY(rotation.y * Math.PI / 180), mat4RotZ(rotation.z * Math.PI / 180))
-		)
+		mat4Translation(-3, 0, 0),
+		mat4Mul(mat4RotX(rotation.x * Math.PI / 180),
+			mat4Mul(mat4RotY(rotation.y * Math.PI / 180), mat4RotZ(rotation.z * Math.PI / 180)))
 	);
 	gl.uniformMatrix4fv(uniformModelMatrixLocation, true, modelSphere);
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 	gl.uniform1i(uniformTextureLocation, 0);
-
 	gl.bindVertexArray(vaoSphere);
 	gl.drawElements(gl.TRIANGLES, sphereMesh.indices.length, gl.UNSIGNED_SHORT, 0);
 
 	// === TORUS ===
 	const modelTorus = mat4Mul(
-		mat4Translation(1.5, 0, 0),
-		mat4Mul(
-			mat4RotX(rotation.x * Math.PI / 180),
-			mat4Mul(mat4RotY(rotation.y * Math.PI / 180), mat4RotZ(rotation.z * Math.PI / 180))
-		)
+		mat4Translation(0, 0, 0),
+		mat4Mul(mat4RotX(rotation.x * Math.PI / 180),
+			mat4Mul(mat4RotY(rotation.y * Math.PI / 180), mat4RotZ(rotation.z * Math.PI / 180)))
 	);
 	gl.uniformMatrix4fv(uniformModelMatrixLocation, true, modelTorus);
 	gl.uniform3fv(uniformColorLocation, [0.2, 0.6, 1.0]);
-
 	gl.bindVertexArray(vaoTorus);
 	gl.drawElements(gl.TRIANGLES, torusMesh.indices.length, gl.UNSIGNED_SHORT, 0);
+
+	// === CAR ===
+	if (carMesh) {
+		const modelCar = mat4Mul(
+			mat4Translation(3, 0, 0),
+			mat4Mul(mat4RotX(rotation.x * Math.PI / 180),
+				mat4Mul(mat4RotY(rotation.y * Math.PI / 180), mat4RotZ(rotation.z * Math.PI / 180)))
+		);
+		gl.uniformMatrix4fv(uniformModelMatrixLocation, true, modelCar);
+		gl.uniform3fv(uniformColorLocation, [1.0, 0.4, 0.2]);
+		gl.bindVertexArray(vaoCar);
+		gl.drawElements(gl.TRIANGLES, carMesh.indices.length, gl.UNSIGNED_SHORT, 0);
+	}
 
 	gl.bindVertexArray(null);
 	gl.useProgram(null);
