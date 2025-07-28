@@ -20,6 +20,9 @@ let uniformProjectionMatrixLocation;
 let uniformColorLocation;
 let uniformTextureLocation;
 let uniformUseTextureLocation;
+let uniformLightDirectionLocation;
+let uniformLightColorLocation;
+let uniformAmbientColorLocation;
 
 let cameraRotation = { x: 15, y: 30 };
 let isMouseDown = false;
@@ -30,6 +33,11 @@ let carMesh = null;
 let enableAutoRotate = false;
 let lastTime = 0;
 let rotationY = 0;
+let textureSun;
+
+// Sonne
+let sunRotationAngle = 0;
+let sunRadius = 7;
 
 function setupSliders() {
 	document.getElementById("slider-rx").addEventListener("input", (e) => {
@@ -88,11 +96,15 @@ async function initialize() {
 	uniformColorLocation = gl.getUniformLocation(program, "u_color");
 	uniformTextureLocation = gl.getUniformLocation(program, "u_texture");
 	uniformUseTextureLocation = gl.getUniformLocation(program, "u_useTexture");
+	uniformLightDirectionLocation = gl.getUniformLocation(program, "u_lightDirection");
+	uniformLightColorLocation = gl.getUniformLocation(program, "u_lightColor");
+	uniformAmbientColorLocation = gl.getUniformLocation(program, "u_ambientColor");
 
 	setupCameraRotation();
 
 	textureSphere = await loadImageTexture(gl, "compgrafik.png");
 	textureTorus = await loadImageTexture(gl, "compgrafik2.png");
+	textureSun = await loadImageTexture(gl, "sonne.png");
 
 	vaoSphere = createVAO(sphereMesh, gl);
 	vaoTorus = createVAO(torusMesh, gl);
@@ -124,6 +136,15 @@ function createVAO(mesh, gl) {
 		gl.vertexAttribPointer(uvLoc, 2, gl.FLOAT, false, 0, 0);
 	}
 
+	if (mesh.normals && mesh.normals.length > 0) {
+		const normBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, normBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.normals), gl.STATIC_DRAW);
+		const normLoc = gl.getAttribLocation(program, "a_normal");
+		gl.enableVertexAttribArray(normLoc);
+		gl.vertexAttribPointer(normLoc, 3, gl.FLOAT, false, 0, 0);
+	}
+
 	const indexBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(mesh.indices), gl.STATIC_DRAW);
@@ -139,6 +160,12 @@ function render(currentTime) {
 	if (enableAutoRotate) {
 		rotationY += deltaTime * 0.5;
 	}
+	sunRotationAngle += deltaTime * 0.5;
+
+	const sunX = Math.cos(sunRotationAngle) * sunRadius;
+	const sunY = 3;
+	const sunZ = Math.sin(sunRotationAngle) * sunRadius;
+	const sunDirection = [-sunX, -sunY, -sunZ];
 
 	gl.clearColor(0.1, 0.1, 0.1, 1);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -153,6 +180,10 @@ function render(currentTime) {
 
 	gl.uniformMatrix4fv(uniformViewMatrixLocation, true, view);
 	gl.uniformMatrix4fv(uniformProjectionMatrixLocation, true, projection);
+
+	gl.uniform3fv(uniformLightDirectionLocation, sunDirection);
+	gl.uniform3fv(uniformLightColorLocation, [1.0, 1.0, 1.0]);
+	gl.uniform3fv(uniformAmbientColorLocation, [0.2, 0.2, 0.2]);
 
 	drawObject(vaoSphere, sphereMesh, textureSphere, mat4Translation(-3, 0, 0));
 	drawObject(vaoTorus, torusMesh, textureTorus, mat4RotY(rotationY));
@@ -178,6 +209,10 @@ function render(currentTime) {
 		}
 		gl.bindVertexArray(null);
 	}
+
+	// ☀️ Die Sonne (sichtbar)
+	const modelSun = mat4Translation(sunX, sunY, sunZ);
+drawObject(vaoSphere, sphereMesh, textureSun, modelSun);
 
 	requestAnimationFrame(render);
 }
