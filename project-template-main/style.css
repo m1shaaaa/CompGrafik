@@ -2,16 +2,19 @@ body {
 	text-align: center;
 	font-family: Arial, Helvetica, sans-serif;
 	margin: 0;
-	background-color: var(--default-background-color);
+	background: #fff; 
+	overflow: hidden;
 	color: var(--default-font-color);
 }
 
 canvas {
 	display: block;
-	margin: auto;
-	/* if the canvas is too wide to fit on the page, scale it down */
-	max-width: 100%;
+	margin: 2rem auto;
+	background: #1a1a1a; 
+	max-width: 100vw;
+	max-height: 80vh;
 	width: 50rem;
+	box-shadow: 0 0 16px #8888; 
 }
 
 #error {
@@ -19,23 +22,16 @@ canvas {
 }
 
 #error:empty {
-	display: none; /* if no text is set, hide */
+	display: none; 
 }
 
 label {
 	margin-left: 3em;
 }
 
-/* default color scheme */
+
 :root {
 	--default-font-color: #303030;
 	--default-background-color: #e9e9e9;
 }
 
-/* dark color scheme (depending on browser settings) */
-@media (prefers-color-scheme: dark) {
-	:root {
-		--default-font-color: #cac5be;
-		--default-background-color: #181a1b;
-	}
-}

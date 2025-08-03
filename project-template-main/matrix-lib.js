@@ -40,6 +40,15 @@ function mat4Translation(tx, ty, tz) {
 	];
 }
 
+function mat4Scale(sx, sy, sz) {
+    return [
+        sx, 0,  0, 0,
+        0, sy,  0, 0,
+        0,  0, sz, 0,
+        0,  0,  0, 1,
+    ];
+}
+
 function mat3Mul(a, b) {
 	const a00 = a[0 * 3 + 0];
 	const a01 = a[0 * 3 + 1];
